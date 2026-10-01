@@ -1,0 +1,719 @@
+---
+title: Data_analysis_project_Villani_Zavattarelli
+format: pdf
+editor: visual
+echo: true
+execute: 
+  warning: false
+  message: false
+---
+
+# **Evaluation of Milan's *Area C* traffic policy impact on air quality in terms of PM2.5 concentration: a RDiT approach**
+
+### **Section I**
+
+### **INTRODUCTION**
+
+Air pollution in urban areas has become an increasingly serious public health problem in recent decades, with PM2.5 (fine particulate matter) as the most harmful airborne pollutant. In fact, PM2.5 is 2.5 microns or less in diameter, so small in size that it is able to penetrate deep within the lungs and into the bloodstream, inducing respiratory and cardiovascular diseases, lung cancer and premature mortality. According to the European Environmental Agency, annual deaths due to the exposure to PM2.5 in Europe are over 240,000, with Milan ranking among the hardest-hit cities (1,600 deaths per year). Milan regularly exceeds the EU air quality levels, and that is why it is essential to implement environmental-protection policies that are effective.
+
+In this regard, the policy of *Area C* traffic restriction was applied in January 2012, in order to limit vehicles' access to the city center by charging a congestion tax. Given that such a policy implementation involves considerable costs and social consequences, it is pivotal to evaluate its effectiveness, and in particular whether *Area C* did actually have an impact on PM2.5 concentration.
+
+This study seeks to answer the following question: ***Did the implementation of Milan's Area C policy in January 2012 significantly reduce PM2.5 concentration in the city center?***
+
+To conduct our estimation, we made use of a Regression Discontinuity in Time (RDiT), a quasi-experimental design where time is the running variable and the cutoff is the treatment (in this case policy implementation) date, which operates through the analysis of pre- and post- intervention trends in PM2.5 concentrations.
+
+The analysis is structured as follows. The next section (II) includes data description as well as the cleaning and organisation of it. Subsequently, section III is comprised of the centering of the variables around January 2012 with the purpose of applying our research method: regression discontinuity in time. The same section also presents all the models with covariates, polynomials, time trends, different cutoffs and different bandwidths, together with a variety of robustness checks serving as a corroboration. Section IV showcases the main findings directly from the most explanatory models and is followed by the conclusions we were able to derive from the study, outlined in section V.
+
+### **Section II**
+
+### **DATA**
+
+This study is based on the data provided by the Municipality of Milan (Comune di Milano), specifically by the daily *Air Quality Detection*, which is annually drawn up by *AMAT* (Agenzia Mobilità Ambiente e Territorio) on the basis of the data gathered by *Arpa Lombardia* (Agenzia regionale per la protezione dell'ambiente della Lombardia). This agency is responsible, through the air quality monitoring stations operating in the city, for reporting the concentrations of the airborne pollutants detected every day.
+
+For the purpose of our analysis we focused exclusively on PM2.5, which is measured in micro-grams per cubic meter (μg/m³) mean concentration over 24 hours, thus cleaning the data sets from data relative to other pollutants. For consistency we also filtered data to retain only monitoring observations from Station 2, which is located in a central zone of Milan and within *Area C*.
+
+The data tidying process included the aggregation of daily values into monthly averages in order to remove short-term fluctuations and for the trends to be easier to interpret. Each yearly data set (2008-2018) was then combined into a single formatted table ("final_table_mean") with a standard format for variables included. It was then plotted the time trend of PM2.5 concentrations to have an initial visual insight of its trend over time, before and after *Area C* implementation.
+
+```{r}
+library(tidyverse)
+getwd()
+```
+
+```{r}
+library(readr)
+
+# Loading data, 2008
+data_08 <- read.csv("2008_MIAirQ_fixed.csv")
+colnames(data_08)
+
+# Sorting data by month and obtaining the average level of PM2.5 for each 
+mean_08 <- data_08 %>%
+ group_by(date) %>%
+ summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_08)
+
+# 2009
+data_09 <- read.csv("2009_MIAirQ_fixed.csv")
+colnames(data_09)
+
+# Correction of 2009 dataframe's format 
+data_09 <- read_delim("2009_MIAirQ_fixed.csv", 
+                      delim = ";", col_types = cols())
+
+mean_09 <- data_09 %>%
+ group_by(date) %>%
+ summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_09)
+
+#2010
+data_10 <- read.csv("2010_MIAirQ_fixed.csv")
+data_10 <- read_delim("2010_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_10 <- data_10 %>%
+ group_by(date) %>%
+ summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_10)
+
+#2011
+data_11 <- read.csv("2011_MIAirQ_fixed.csv")
+data_11 <- read_delim("2011_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_11 <- data_11 %>%
+ group_by(date) %>%
+ summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_11)
+
+#2012
+data_12 <- read.csv("2012_MIAirQ_fixed.csv")
+data_12 <- read_delim("2012_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_12 <- data_12 %>%
+ group_by(date) %>%
+ summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_12)
+
+# 2013
+data_13 <- read.csv("2013_MIAirQ_fixed.csv")
+data_13 <- read_delim("2013_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_13 <- data_13 %>%
+ group_by(date) %>%
+ summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_13)
+
+# 2014
+data_14 <- read.csv("2014_MIAirQ_fixed.csv")
+data_14 <- read_delim("2014_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+colnames(data_14)[1] <- "date"
+
+mean_14 <- data_14 %>%
+ group_by(date) %>%
+ summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_14)
+
+# 2015 
+data_15 <- read.csv("2015_MIAirQ_fixed.csv")
+data_15 <- read_delim("2015_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_15 <- data_15 %>%
+  group_by(date) %>%
+  summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_15)
+
+# 2016 
+data_16 <- read.csv("2016_MIAirQ_fixed.csv")
+data_16 <- read_delim("2016_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_16 <- data_16 %>%
+  group_by(date) %>%
+  summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_16)
+
+# 2017 
+data_17 <- read.csv("2017_MIAirQ_fixed.csv")
+data_17 <- read_delim("2017_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_17 <- data_17 %>%
+  group_by(date) %>%
+  summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_17)
+
+# 2018
+data_18 <- read.csv("2018_MIAirQ_fixed.csv")
+data_18 <- read_delim("2018_MIAirQ_fixed.csv", delim = ";", col_types = cols())
+
+mean_18 <- data_18 %>%
+  group_by(date) %>%
+  summarise(mean_value = mean(value, na.rm = TRUE))
+print(mean_18)
+```
+
+```{r}
+library(dplyr)
+library(purrr) 
+
+# Merging data based on column "date"
+final_table_mean <- reduce(list(mean_08, mean_09, mean_10, mean_11, mean_12, mean_13, mean_14, mean_15, mean_16, mean_17, mean_18),  full_join, by = "date")
+
+# Renaming columns 
+colnames(final_table_mean) <- c("Month", "avg_08", "avg_09", "avg_10", "avg_11", "avg_12", "avg_13", "avg_14", "avg_15", "avg_16", "avg_17", "avg_18")
+
+# Labeling months 
+final_table_mean <- final_table_mean %>%
+  mutate(Month = factor(Month, levels = 1:12, 
+labels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "Dece")))
+
+print(final_table_mean)
+```
+
+```{r}
+library(tidyr)
+
+# Union in one column 
+final_table_mean <- reduce(list(mean_08, mean_09, mean_10, mean_11, mean_12, mean_13, mean_14, mean_15, mean_16, mean_17, mean_18),  
+full_join, by = "date")
+
+colnames(final_table_mean) <- c("Month", "avg_08", "avg_09", "avg_10", "avg_11", "avg_12", "avg_13", "avg_14", "avg_15", "avg_16", "avg_17", "avg_18")
+
+# Number of the month into name of the month 
+final_table_mean <- final_table_mean %>%
+mutate(Month = factor(Month, levels = 1:12, 
+labels = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")),
+Month_Num = as.numeric(Month))  
+
+# Modifying format: wide to long 
+graph_data <- final_table_mean %>%
+  pivot_longer(cols = starts_with("avg_"), names_to = "Year", values_to = "PM2.5") %>%
+mutate(Year = as.numeric(gsub("avg_", "", Year)) + 2000,  
+Date = paste(Month, Year)) %>%
+arrange(Year, Month_Num) %>%  
+select(Date, PM2.5)  
+
+print(graph_data)
+View(graph_data)
+```
+
+```{r}
+library(ggplot2)
+
+# Time of implementation of "Area C" 
+policy_time <- "January 2012"  
+
+# Evolution of PM25 levels over time before and after treatment 
+ggplot(graph_data, aes(x = Date, y = PM2.5, group = 1)) +
+  geom_line(color = "blue") +  
+  geom_vline(xintercept = which(graph_data$Date == policy_time), 
+  linetype = "dashed", color = "red") + 
+  labs(title = "PM2.5 Over Time before and after Area C", 
+       x = "Time", 
+       y = "PM2.5 Levels") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+```
+
+### Section III
+
+### METHODS
+
+The data were centered around January 2012 ("centered_data"). This technique consists of subtracting the reference value from all observations in order to ensure that the cutoff is the point of reference (January 2012 becomes 0), and to inspect potential discontinuity in PM2.5 at that point in time.
+
+The running variable for the RDiT was then created, consisting of a time-centered variable ("time") that captures the distance from January 2012 in terms of months. Together with it, a dummy for the policy implementation was added to the data frame "value_time_cent". The dummy "treatment" takes value 1 for observations from January 2012 onward, and value 0 otherwise.
+
+```{r}
+# Centering data around January 2012 
+center_values <- function(data, ref_row, ref_col) {if (!ref_col %in% colnames(data)) {
+stop("Error: The specified reference column does not exist in the dataset.")
+}
+  
+if (ref_row < 1 || ref_row > nrow(data)) {
+stop("Error: The specified reference row is out of bounds.")
+}
+  
+ref_value <- data[[ref_col]][ref_row]
+
+long_data <- data %>%
+pivot_longer(cols = starts_with("avg_"), names_to = "Year", values_to = "Value") %>%
+mutate(Year = as.numeric(gsub("avg_", "", Year))) 
+  
+long_data <- long_data %>%
+mutate(Value_Centered = Value - ref_value)
+return(long_data)
+}
+
+centered_data <- center_values(final_table_mean, ref_row = 1, ref_col = "avg_12")
+
+# Changing the date format 
+centered_data$Year <- ifelse(centered_data$Year < 100, centered_data$Year + 2000, centered_data$Year)
+
+centered_data$Date <- as.Date(paste("01", centered_data$Month, centered_data$Year, sep = " "), format = "%d %B %Y")
+
+View(centered_data)
+```
+
+```{r}
+# Creating dataframe with the time-centered running variable 
+time_cent <- data.frame(
+  Date = c("January 2008", "February 2008", "March 2008", "April 2008", "May 2008", "June 2008", "July 2008", "August 2008", "September 2008", "October 2008", "November 2008", "December 2008", "January 2009", "February 2009", "March 2009", "April 2009", "May 2009", "June 2009", "July 2009", "August 2009", "September 2009", "October 2009", "November 2009", "December 2009", "January 2010", "February 2010", "March 2010", "April 2010", "May 2010", "June 2010", "July 2010", "August 2010", "September 2010", "October 2010", "November 2010", "December 2010", "January 2011", "February 2011", "March 2011", "April 2011", "May 2011", "June 2011", "July 2011", "August 2011", "September 2011", "October 2011", "November 2011", "December 2011", "January 2012", "February 2012", "March 2012", "April 2012", "May 2012", "June 2012", "July 2012", "August 2012", "September 2012", "October 2012", "November 2012", "December 2012", "January 2013", "February 2013", "March 2013", "April 2013", "May 2013", "June 2013", "July 2013", "August 2013", "September 2013", "October 2013", "November 2013", "December 2013", "January 2014", "February 2014", "March 2014", "April 2014", "May 2014", "June 2014", "July 2014", "August 2014", "September 2014", "October 2014", "November 2014", "December 2014", "January 2015", "February 2015", "March 2015", "April 2015", "May 2015", "June 2015", "July 2015", "August 2015", "September 2015", "October 2015", "November 2015", "December 2015", "January 2016", "February 2016", "March 2016", "April 2016", "May 2016", "June 2016", "July 2016", "August 2016", "September 2016", "October 2016", "November 2016", "December 2016", "January 2017", "February 2017", "March 2017", "April 2017", "May 2017", "June 2017", "July 2017", "August 2017", "September 2017", "October 2017", "November 2017", "December 2017", "January 2018", "February 2018", "March 2018", "April 2018", "May 2018", "June 2018", "July 2018", "August 2018", "September 2018", "October 2018", "November 2018", "December 2018"),
+
+PM2.5 = c(49.096774, 63.892857, 25.357143, 17.666667, 15.677419, 17.370370, 13.379310, 
+7.000000, 19.666667, 44.259259, 38.827586, 51.041667, 67.703704, 46.840000, 33.258065, 22.107143, 13.966667, 13.933333, 14.304348, 12.741935, 19.727273, 33.518519, 44.034483, 45.129032, 57.111111, 47.650000, 29.666667, 17.840000, 13.677419, 11.333333, 15.807692, 8.833333, 14.500000, 34.032258, 26.111111, 32.800000, 57.935484, 60.000000, 30.161290, 21.500000, 14.925926, 14.535714, 9.120000, 11.185185, 25.950000, 36.903226, 54.793103, 59.130435, 50.733333, 57.777778, 38.466667, 11.214286, 8.050000, 13.344828, 9.785714, 12.833333, 18.950000, 33.809524, 42.588235, 42.530612, 48.785714, 40.875000, 37.739130, 29.107143, 18.391304, 17.846154, 17.653846, 14.045455, 20.300000, 30.615385, 26.555556, 74.300000, 39.875000, 28.800000, 40.238095, 22.928571, 15.115385, 18.571429, 9.520000, 8.703704, 20.814815, 32.230769, 33.400000, 29.473684, 46.800000, 48.000000, 39.913043, 24.739130, 18.611111, 15.058824, 15.850000, 19.500000, 16.500000, 26.555556, 47.444444, 69.500000, 49.800000, 38.333333, 24.388889, 23.842105, 14.333333, 13.250000, 15.200000, 13.923077, 22.111111, 23.529412, 35.764706, 48.823529, 58.571429, 55.263158, 32.666667, 26.071429, 13.666667, 14.166667, 12.736842, 12.133333, 14.812500, 40.761905, 34.111111, 39.250000, 31.050000, 26.600000, 27.047619, 15.562500, 12.937500, 13.000000, 13.272727, 14.764706, 19.200000, 28.318182, 20.312500, 39.562500)
+)
+
+time_cent$Date <- as.Date(paste("01", time_cent$Date), format="%d %B %Y")
+
+# Setting again policy implementation date
+policy_date <- as.Date("01 January 2012", format="%d %B %Y")
+
+# Creation of the running variable: number of months passed since "policy_date", January 2012 
+time_cent$time <- as.numeric(difftime(time_cent$Date, policy_date, units = "days")) / 30
+
+# Dummy treatment variable: 1 if date >= January 2012 (treatment is active), 0 if else 
+time_cent$treatment <- ifelse(time_cent$Date 
+                              >= policy_date, 1, 0)
+
+view(time_cent)
+
+# Adding column value_centered into time_cent dataframe based on column Date 
+value_time_cent <- merge(time_cent, centered_data[, c("Date", "Value_Centered")], by = "Date", all.x = TRUE)
+
+view(value_time_cent)
+```
+
+We proceeded through the sub-setting of observations to a narrower bandwidth (2010-2014, 24 months around the cutoff). The aim is to focus on observations that are closer to the cutoff, thereby reducing the potential bias that may arise from including longer-term data, which possibly contain fluctuations unrelated to the policy.
+
+For the purpose of solving for potential confounding bias given by underlying weather trends, we included in our study variables that control for some meteorological factors (data have been gathered from the website of the Municipality of Milan) which we cleaned and set up in order to get the monthly averages. The covariates consist of: wind speed (km/h), temperature (°C), rainfall (mm) and humidity (g/m³). All data were centered around the cutoff and eventually added to the data frame "value_time_centh24".
+
+```{r}
+# Subsetting value_time_cent 
+value_time_centh24 <- value_time_cent %>%
+filter(Date >= as.Date("2010-01-01") & Date <= as.Date("2014-01-01"))
+
+# Adding covariate "average wind speed" (km/h per month) to dataframe value_time_centh24
+wind <- read_delim("wind.csv", delim = ";", col_types = cols(), locale = locale(decimal_mark = ","))
+colnames(wind) <- c("Year", "Month", "wind_speed") 
+
+# Changing the date format 
+wind <- wind %>%
+mutate(Date = as.Date(paste(Year, Month, "01", sep = "-"), format = "%Y-%m-%d"))
+
+# Removing columns "Month" and "Year"  
+wind <- wind %>%
+select(-Year, -Month) 
+
+# Arranging by Date
+wind <- wind %>% arrange(Date) 
+view(wind)
+
+value_time_centh24 <- value_time_centh24 %>%
+left_join(wind %>% select(Date, wind_speed), by = "Date")
+
+# Adding covariate "average temperatures" (°C/month) to value_time_centh24
+avg_temp <- read.csv("avg_temp.csv")
+avg_temp <- read_delim("avg_temp.csv", delim = ";", col_types = cols(), locale = locale(decimal_mark = ","))
+colnames(avg_temp) <- c("Year", "Month", "temperature")  
+
+avg_temp <- avg_temp %>% 
+mutate(Date = as.Date(paste(Year, Month, "01", sep = "-"), format = "%Y-%m-%d"))
+
+avg_temp <- avg_temp %>%
+select(-Year, -Month)  
+
+avg_temp <- avg_temp %>% arrange(Date) 
+
+value_time_centh24 <- value_time_centh24 %>%
+left_join(avg_temp %>% select(Date, temperature), by = "Date")
+
+# Adding covariate "average rainfall" (mm/month) to value_time_centh24
+rain <- read_delim("rain.csv", delim = ";", col_types = cols(), locale = locale(decimal_mark = ","))
+colnames(rain) <- c("Year", "Month", "rainfall")
+
+rain <- rain %>% 
+mutate(Date = as.Date(paste(Year, Month, "01", sep = "-"), format = "%Y-%m-%d"))
+
+rain <- rain %>%
+select(-Year, -Month)  
+
+rain <- rain %>% arrange(Date) 
+view(rain)
+
+value_time_centh24 <- value_time_centh24 %>%
+left_join(rain %>% select(Date, rainfall), by = "Date")
+
+# Adding covariate "average humidity" (g/m³ per month) to value_time_centh24
+humidity_dataset<- read_delim("humidity.csv", delim = ";", col_types = cols(), locale = locale(decimal_mark = ","))
+colnames(humidity_dataset) <- c("Year", "Month", "humidity")
+
+humidity_dataset  <- humidity_dataset %>% 
+mutate(Date = as.Date(paste(Year, Month, "01", sep = "-"), format = "%Y-%m-%d"))
+
+humidity_dataset <- humidity_dataset %>%
+select(-Year, -Month)  
+
+humidity <- humidity_dataset %>% arrange(Date) 
+view(humidity)
+
+value_time_centh24 <- value_time_centh24 %>%
+left_join(humidity_dataset %>% select(Date, humidity), by = "Date")
+
+# Defining the cutoff date (January 2012)
+cutoff_date <- as.Date("2012-01-01")
+
+# Centering data on wind, temperature, rain and humidity around the policy implementation date by subtracting their values at the cutoff
+value_time_centh24 <- value_time_centh24 %>%
+mutate(wind_speed_cent = wind_speed - wind_speed[Date == cutoff_date],
+temperature_cent = temperature - temperature[Date == cutoff_date],
+rainfall_cent = rainfall - rainfall[Date == cutoff_date],
+humidity_cent = humidity - humidity[Date == cutoff_date]) 
+
+# Removing columns of non-centered data 
+value_time_centh24 <- value_time_centh24 %>%
+select(-temperature, -wind_speed, -rainfall, -humidity)
+
+view(value_time_centh24)  
+```
+
+By plotting correlations of PM2.5 with the meteorological covariates, it's possible to observe their paths over time and visually assess their relative potential impact on PM2.5 concentrations. Wind speed and temperature seem to showcase an inverse relationship with PM2.5 levels. Accordingly, not controlling for them would likely cause an alteration of the treatment effect detected. In contrast, rainfall and humidity appear not to have a clear relationship with PM2.5 leading us to suppose that they will interfere less with the measurement of the policy impact.
+
+```{r}
+# Plot of wind against PM2.5 values 
+scaling_factor <- mean(value_time_centh24$PM2.5, na.rm = TRUE) / mean(value_time_centh24$wind_speed_cent, na.rm = TRUE) 
+
+ggplot(value_time_centh24, aes(x = time)) +
+geom_point(aes(y = PM2.5), alpha = 0.5, color = "red") +  
+geom_smooth(aes(y = PM2.5), method = "loess", color = "red") +    
+geom_point(aes(y = wind_speed_cent * scaling_factor), alpha = 0.5, color = "blue") +  
+geom_smooth(aes(y = wind_speed_cent * scaling_factor), method = "loess", color = "blue") +  
+geom_vline(xintercept = 0, linetype = "dashed", color = "black") +  
+labs(title = "PM2.5 and wind speed over time",
+x = "Time (Months from Cutoff)",
+y = "PM2.5 (Red) & Wind Speed (Blue, Scaled)") +
+theme_minimal() 
+
+# Plot of tempearture against PM2.5 values 
+scaling_factor_temp <- mean(value_time_centh24$PM2.5, na.rm = TRUE) / mean(value_time_centh24$temperature_cent, na.rm = TRUE)
+
+ggplot(value_time_centh24, aes(x = time)) +
+geom_point(aes(y = PM2.5), alpha = 0.5, color = "red") +  
+geom_smooth(aes(y = PM2.5), method = "loess", color = "red") +  
+geom_point(aes(y = temperature_cent * scaling_factor_temp), alpha = 0.5, color = "blue") +  
+geom_smooth(aes(y = temperature_cent * scaling_factor_temp), method = "loess", color = "blue") +  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +  
+labs(title = "PM2.5 and temperature over time",
+x = "Time (Months from Cutoff)",
+y = "PM2.5 (Red) & Temperature (Blue, Scaled)") +
+theme_minimal() 
+
+# Plot of rain against PM2.5 values 
+scaling_factor_rain <- mean(value_time_centh24$PM2.5, na.rm = TRUE) / mean(value_time_centh24$rainfall_cent, na.rm = TRUE)
+
+ggplot(value_time_centh24, aes(x = time)) +
+geom_point(aes(y = PM2.5), alpha = 0.5, color = "red") +  
+geom_smooth(aes(y = PM2.5), method = "loess", color = "red") +  
+geom_point(aes(y = rainfall_cent * scaling_factor_rain), alpha = 0.5, color = "blue") +  
+geom_smooth(aes(y = rainfall_cent * scaling_factor_rain), method = "loess", color = "blue") +  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +  
+labs(title = "PM2.5 and rainfall over time",
+x = "Time (Months from Cutoff)",
+y = "PM2.5 (Red) & Rain (Blue, Scaled)") +
+theme_minimal()  
+
+# Plot of humidity against PM2.5 values 
+scaling_factor_hum <- mean(value_time_centh24$PM2.5, na.rm = TRUE) / mean(value_time_centh24$humidity_cent, na.rm = TRUE)
+
+ggplot(value_time_centh24, aes(x = time)) +
+geom_point(aes(y = PM2.5), alpha = 0.5, color = "red") +  
+geom_smooth(aes(y = PM2.5), method = "loess", color = "red") +  
+geom_point(aes(y = humidity_cent * scaling_factor_hum), alpha = 0.5, color = "blue") +  
+geom_smooth(aes(y = humidity_cent * scaling_factor_hum), method = "loess", color = "blue") +  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +  
+labs(title = "PM2.5 and humidity over time",
+x = "Time (Months from Cutoff)",
+y = "PM2.5 (Red) & humidity (Blue, Scaled)") +
+theme_minimal()  
+```
+
+After defining the treatment variable "Treatment", a dummy for pre- and post- policy implementation, it is reported a visual inspection using the regression discontinuity plot. The first plot presents PM2.5 levels against time: a linear regression was estimated across both pre- and post- treatment time periods to possibly obtain a visual representation of discontinuity in correspondence with the cutoff (c = 0).
+
+The suspected jump resulted small, suggesting that the immediate effect of Area C was minimal. To verify this with statistical outcomes, we proceeded through the RDiT analysis, conducted with the rdrobust package, which proved the absence of sufficient statistical evidence to consider the jump at the cutoff as attributable to the policy application.
+
+Because we recognized the policy impact may be delayed, we tested whether a discontinuity was significantly visible after some months of the treatment. One month later (c =1) still no significant discontinuity was found, while two months later (c = 2) a p-value (0.000) strongly supports evidence of a jump implying the rejection of the null hypothesis of no effect of the policy as of March 2012. Statistical analyses are followed by respective graphical representations.
+
+In order to check the robustness of our results we then tested discontinuities at c = 2 for different bandwidths. Using bandwidths of 12, 6, and 36 months (h = 12, 6, 36) we found support for the significance of the discontinuity. The robustness obtained confirmed that the reduction in PM2.5 at c = 2 was not confined to the choice of the bandwidth but represented an actual impact of the policy. Additionally, different polynomial specifications (p = 1, p = 2) corroborated the presence of a sharp jump in PM2.5 after two months.
+
+```{r}
+# Creating a treatment variable (1 if time =< January 2012, 0 otherwise)
+value_time_centh24 <- value_time_centh24 %>%
+mutate(Treatment = ifelse(time >= 0, 1, 0))
+
+# Regression discontinuity plot with ggplot 
+ggplot(value_time_centh24, aes(x = time, y = PM2.5, color = factor(Treatment))) +
+geom_point(alpha = 0.6) +  
+geom_smooth(method = "lm", se = FALSE) +  
+geom_vline(xintercept = 0, linetype = "dashed", color = "red") +  
+labs(title = "Regression Discontinuity Plot", x = "Time (Months Centered at Cutoff)",
+y = "PM2.5 Levels", color = "Treatment") +
+theme_minimal() 
+
+# Rdrobust analysis 
+library(rdrobust)
+rdrobusth24 <- rdrobust(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 0, h = 24)
+summary(rdrobusth24) 
+
+# Testing the hypothesis that the introduction of Area C had delayed effects
+# Adding a column to investigate potential impact of the treatment 1 month after its activation (c = 1) 
+value_time_centh24$treatment_lagged <- ifelse(value_time_centh24$time >= 1, 1, 0)
+
+rd_test_lagged <- rdrobust(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 1, h = 24)
+summary(rd_test_lagged) 
+
+# Investigating potential impact 2 months after implementation (c = 2)
+value_time_centh24$treatment_lagged2 <- ifelse(value_time_centh24$time >= 2, 1, 0)
+
+rd_test_lagged2 <- rdrobust(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 2, h = 24)
+summary(rd_test_lagged2)  
+
+# Graphical evidence of a jump at c = 2
+RD_h24 <- rdplot(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 2, h = 24, title = "RD Plot: PM2.5 Over time evaluation at c = 2")  
+
+# Graph forcing p = 1 to detect a discontinuity at time c = 2
+RD_h24C2 <- rdplot(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 2, h = 24, p = 1, title = "RD Plot: PM2.5 Over time evaluation at c = 2 (p =1)") 
+
+# Graph with p = 2 to detect a discontinuity at time c = 2
+RD_h24C2 <- rdplot(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 2, h = 24, p = 2, title = "RD Plot: PM2.5 Over time evaluation at c = 2 (p =2)") 
+
+# Robustness checks: Testing the presence of a jump at c = 2 for different bandwidths
+# h = 12 
+RD_12A <- rdrobust(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 2, h = 12)
+summary(RD_12A) 
+
+# h = 6
+RD_6A <- rdrobust(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = 2, h = 6)
+summary(RD_6A) 
+
+# On the whole initial dataset value_time_cent 
+RD_full <- rdrobust(y = value_time_cent$PM2.5, x = value_time_cent$time, c = 2, h = 36)
+summary(RD_full) # P-value < 0.05 supports evidence in favor of discontinuity at c = 2
+```
+
+Validity tests have been carried out to ensure RDiT approach is credible and unbiased. Underlying conditions of RDD's cutoff were satisfied, given the following outcomes:
+
+No discontinuity was spotted in the density of observations around c = 2 (p-value \> 0.05 indicates no evidence of data manipulation), which was again confirmed by the continuity of the density function around c = 2.
+
+Discontinuities at the cutoff were found when checking for the smoothness of the covariates for the variables of temperature, which showed a highly significant jump, and wind speed, which instead only appeared to be discontinuous according to the conventional method of RDD, but not to be robust over different bandwidths. Temperature and wind speed resulted to be the main possible confounders. Rainfall and humidity manifested no significant discontinuities instead.
+
+Support for the condition of no pre-trends was achieved through the conclusion that none of the coefficients of time, inserted in a polynomial model (time, time\^2, time\^3) were statistically significant.
+
+Placebo tests at points c = -12 and c = -6 reinforced the absence of discontinuities prior to the policy intervention.
+
+```{r}
+# Test for the fundamental conditions of RDD for the cutoff to be valid 
+# CONDITION: No discontinuity in the density of observations around c = 2
+install.packages("rddensity")
+library(rddensity) 
+
+mc_test <- rddensity(value_time_centh24$time, c = 2, h = 22) 
+summary(mc_test)
+
+# Plot the density results
+rdplotdensity(mc_test, value_time_centh24$time) 
+
+# CONDITION: smoothness of covariates around the cutoff 
+rd_test_wind <- rdrobust(y = value_time_centh24$wind_speed_cent, x = value_time_centh24$time, 
+c = 2, h = 24)
+summary(rd_test_wind) 
+
+rd_test_wind <- rdrobust(y = value_time_centh24$wind_speed_cent, x = value_time_centh24$time, 
+c = 2, h = 12)
+summary(rd_test_wind) 
+
+rd_test_temp <- rdrobust(y = value_time_centh24$temperature_cent, x = value_time_centh24$time, 
+c = 2, h = 24)
+summary(rd_test_temp) 
+
+rd_test_temp <- rdrobust(y = value_time_centh24$temperature_cent, x = value_time_centh24$time, 
+c = 2, h = 12)
+summary(rd_test_temp) # Additional proof of temperature being discontinuous highlights how not including "temperature_cent" in the model would bias the estimated treatment effect. 
+
+rd_test_rain <- rdrobust(y = value_time_centh24$rainfall_cent, 
+x = value_time_centh24$time, c = 2, h = 24)
+summary(rd_test_rain)
+
+rd_test_hum <- rdrobust(y = value_time_centh24$humidity_cent, x = value_time_centh24$time, 
+c = 2, h = 24)
+summary(rd_test_hum)  
+
+# CONDITION: Absence of pre-trends
+pre_trend <- lm(PM2.5 ~ time + I(time^2) + I(time^3), data = subset(value_time_centh24, time < 0))
+summary(pre_trend)  
+
+# CONDITION: No other discontinuity detected before the treatment implementation
+# Placebo tests 
+rd_test_placebo1 <- rdrobust(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = -12, h = 24)
+summary(rd_test_placebo1) # P-value > 0.05: absence of a jump at c = -12
+ 
+rd_test_placebo2 <- rdrobust(y = value_time_centh24$PM2.5, x = value_time_centh24$time, c = -6, h = 24)
+summary(rd_test_placebo2) # P-value > 0.05: absence of a jump at c = -6 
+```
+
+```{r}
+# Testing for time-varying patterns (such as seasonality): model including "time", "time^2", "time^3" 
+model_time <- lm(PM2.5 ~ time + I(time^2) + I(time^3) + wind_speed_cent + temperature_cent + rainfall_cent + humidity_cent, data = value_time_centh24)
+summary(model_time) 
+
+# Test to detect pre-trends (trends before the implementation of the treatment)
+pre_trend_model <- lm(PM2.5 ~ time + I(time^2) + I(time^3) + wind_speed_cent + temperature_cent + rainfall_cent + humidity_cent, data = value_time_centh24, subset = (time < 0)) 
+summary(pre_trend_model) 
+```
+
+To determine the best-fitting model, we compared a regression that includes time polynomials, "RD_trends_lag", and one that excludes them, "RD_time_lag". As an overview, the adjusted R-squared showed better performance in the second mentioned regression. However, the best-suitable model has been more consistently identified through the Akaike Information Criterion (AIC), which again confirmed the superiority of "RD_time_lag" due to its lower AIC score.
+
+Relevant to the study is to check that no multicollinearity exists between independent variables, which would distort coefficients' estimation. By means of VIF we verified that multicollinearity does not alter the results. Furthermore, the Durbin-Watson test served to test the hypothesis of autocorrelation, which could be rejeted with all values falling within the range of negligible correlation among residuals.
+
+Additional model specifications were conducted to validate and cross-check the results we got. We conducted estimations with both lagged (c = 2) and immediate (c = 0) treatment variables and applied VIF and DW tests for each passage, which exhibited overall reliability. The policy effect resulted significant in each lagged model, while no significant outcome realizes in c = 0 models. It is notable how temperature emerged as an important confounder.
+
+```{r}
+RD_trends_lag <- lm(PM2.5 ~ treatment_lagged2 + time + I(time^2) + I(time^3) + wind_speed_cent + temperature_cent + rainfall_cent + humidity_cent, data = value_time_centh24)
+summary(RD_trends_lag) # The treatment showcases a p-value = 0.0476 (it has a significant impact). Adjusted R-squared suggests that 76.6% of the variation of PM2.5 levels is captured by the model, a good fit overall. 
+
+RD_time_lag <- lm(PM2.5 ~ treatment_lagged2 + time + wind_speed_cent + temperature_cent + rainfall_cent + humidity_cent, data = value_time_centh24)
+summary(RD_time_lag) # The treatment's significance slightly increases accoridng to the t-value (2.091 > 1.96 => Rejection of the null hypothesis that the coefficient of "treatment_lagged2" = 0), the p-value showcases a slightly lower level. Adjusted R-squared: the model captures 76.81% of the variation of Y.
+
+# Selecting the best-fitting model through the Akaike criterion
+AIC(RD_trends_lag, RD_time_lag) 
+
+# Checking for multicollinearity within the RD_time model 
+library(car)
+vif(RD_time_lag)  
+
+# Durbin Watson test to detect autocorrelation 
+library(zoo)
+library(lmtest)
+dwtest(RD_time_lag)  
+```
+
+```{r}
+# Model without humidity given its alleged weak correlation with PM2.5 (from visual evidence),  c = 2 
+RD_wind_temp_rain_lag <- lm(PM2.5 ~ treatment_lagged2 + time + temperature_cent + rainfall_cent + wind_speed_cent, data = value_time_centh24)
+summary(RD_wind_temp_rain_lag) # The coefficient of the treatment is signficant according to p-value = 0.01887
+
+# Multicollinearity check  
+vif(RD_wind_temp_rain_lag)  # Withih the range grating no distortion of coefficients
+
+# Autocorrelation check  
+dwtest(RD_wind_temp_rain_lag)  # Withih the range grating of coefficients
+
+# c = 0 
+RD_wind_temp_rain <- lm(PM2.5 ~ treatment + time + wind_speed_cent + temperature_cent + rainfall_cent, data = value_time_centh24)
+summary(RD_wind_temp_rain) # Once again, no significant impact of the policy detected 
+
+vif(RD_wind_temp_rain) # All the results fall within the range of minor multicollineairty, except for time which showcases a value slightly higher than 5
+
+dwtest(RD_wind_temp_rain) # DW = 1.986 indicates no alterations in the model due to excessive autocorrelation 
+
+# Visualisation of the results of both regressions 
+install.packages("stargazer")
+library(stargazer)
+
+stargazer(RD_wind_temp_rain_lag, RD_wind_temp_rain, type = "text", title = "Regressions without humidity: c = 2 (1), c = 0 (2) ", align = TRUE)
+
+AIC(RD_wind_temp_rain_lag)
+```
+
+```{r}
+# Model with Wind and temperature for c = 2 
+RD_wind_temp_lag <- lm(PM2.5 ~ treatment_lagged2 + time + temperature_cent + wind_speed_cent, data = value_time_centh24)
+summary(RD_wind_temp_lag) # Statistically significant 
+
+vif(RD_wind_temp_lag) 
+dwtest(RD_wind_temp_lag) 
+
+# c = 0 
+RD_wind_temp <- lm(PM2.5 ~ treatment + time + temperature_cent + wind_speed_cent, data = value_time_centh24)
+summary(RD_wind_temp) # Treatment's coefficient is statistically not signficant 
+
+vif(RD_wind_temp) 
+dwtest(RD_wind_temp) 
+
+stargazer(RD_wind_temp_lag, RD_wind_temp, type = "text", title = "Regressions wind and temperature: c = 2 (1), c = 0 (2) ", align = TRUE)
+
+AIC(RD_wind_temp_lag)
+```
+
+```{r}
+# Model with temperature and rain c = 2
+RD_temp_rain_lag <- lm(PM2.5 ~ treatment_lagged2 + time + temperature_cent + rainfall_cent, data = value_time_centh24) 
+summary(RD_temp_rain_lag) # Treatment's impact shows significance at 5% level, p-value = 0.01188
+
+vif(RD_temp_rain_lag) 
+dwtest(RD_temp_rain_lag) 
+
+# c = 0 
+RD_temp_rain <- lm(PM2.5 ~ treatment + time + temperature_cent + rainfall_cent, data = value_time_centh24)
+summary(RD_temp_rain) # Treatment's coefficient is close to significance 5% level, showcasing a value of 0.06285. Significance at 10% level
+
+vif(RD_temp_rain) 
+dwtest(RD_temp_rain) 
+
+stargazer(RD_temp_rain_lag, RD_temp_rain, type = "text", title = "Regressions temperature and rain: c = 2 (1), c = 0 (2) ", align = TRUE)
+
+AIC(RD_temp_rain_lag)
+```
+
+```{r}
+# Model with just temperature, the main confounding factor detected throughout the analysis for c = 2 
+RD_temp_lag <- lm(PM2.5 ~ treatment_lagged2 + time + temperature_cent, data = value_time_centh24)
+summary(RD_temp_lag) # Statistically significant
+
+vif(RD_temp_lag)  
+dwtest(RD_temp_lag) 
+
+# c = 0 
+RD_temp_ <- lm(PM2.5 ~ treatment + time + temperature_cent, data = value_time_centh24)
+summary(RD_temp_) # As in the previous cases, the treartment's impact results statistically equal to 0
+
+vif(RD_temp_) 
+dwtest(RD_temp_) 
+
+stargazer(RD_temp_lag, RD_temp_, type = "text", title = "Regressions temperature: c = 2 (1), c = 0 (2) ", align = TRUE)
+
+AIC(RD_temp_lag)
+```
+
+It was inserted an interaction model to study if and how the policy impact changes when allowed to depend on the value of temperature. Despite the previously proven correlation between the covariate and PM2.5, i.e. higher temperatures lead to higher PM2.5 concentrations, it has been detected no significant evidence that a stronger or weaker effect of the policy depends on temperature variations. That is, *Area C* has the same effect on air pollution regardless of the value of the temperature registered. In spite of its insignificance according to the p-value, including the interaction in the model remains meaningful as it helps to increase precision and to better separate the actual treatment effect from the general temperature effect, which could be responsible for noises in the analysis setup. Eventually, the lagged model with the interaction reported a significant, solid treatment impact showcasing a p-value of 0.006.
+
+```{r}
+# Model with interaction between the main confounder (temperature) and the treatment at c = 2
+RD_interact_lag <- lm(PM2.5 ~ treatment_lagged2 + time + wind_speed_cent + temperature_cent + temperature_cent * treatment_lagged2, data = value_time_centh24)
+summary(RD_interact_lag) # The treatment's coefficient is strongly significant showcasing a p-value = 0.00636 
+
+# Multicollinearity with Generalized Variance Inflation Factor (GVIF) due to the presence of an interaction (higher order term)
+vif(RD_interact_lag, type = "predictor") # Withih the range grating no distortion of coefficients
+
+# Autocorrelation  
+dwtest(RD_interact_lag) # Slightly above 2, but still very close to it => it should not cause distortions 
+
+# c = 0
+RD_interact <- lm(PM2.5 ~ treatment + time + wind_speed_cent + temperature_cent + temperature_cent * treatment, data = value_time_centh24)
+summary(RD_interact) # Treatment showcases a non-significant impact at c = 0
+
+vif(RD_interact, type = "predictor") 
+dwtest(RD_interact) 
+
+stargazer(RD_interact_lag, RD_interact, type = "text", title = "Regressions with interaction: c = 2 (1), c = 0 (2)", align = TRUE)
+
+AIC(RD_interact_lag) 
+```
+
+### Section IV
+
+### RESULTS
+
+By evaluating the regression model carrying the highest adjusted R-squared and the lowest AIC score, i.e. "RD_wind_temp_rain_lag", we can claim:
+
+the most interesting outcomes of our policy analysis reside in the model accounting for wind speed, temperature and rainfall. The coefficient of "treatment_lagged2" (-12.414, p-value \< 0.05) suggests that *Area C* activation is on average associated with a 12 µg/m³ reduction of PM2.5 levels. Temperature exhibits a strongly significant negative relationship (-1.829, p \< 0.001). Rainfall also shows a negative, significant effect (-0.061, p-value \< 0.01), perhaps due to its general air-cleaning power from airborne pollutants. Wind speed confirms its inverse relationship with PM2.5 by slightly dispersing its concentrations by an average of 0.364 µg/m³ as its speed increases of 1 km/h (p-value \< 0.10).
+
+### Section V
+
+### CONCLUSION
+
+The implementation of *Area C* did not lead to a prompt reduction in PM2.5 concentrations in the air of the city center of Milan. The RDiT plot showed very little change at the cutoff (January 2012). Also, the statistical analysis performed established no significant discontinuity in the immediate aftermath of implementation. However, two months after the enactment of *Area C* a clear discontinuity was obtained, suggesting the solid presence of a lagged effect. Robustness of results is found in the persistent decrease of PM2.5 concentration when tested with different bandwidths and polynomial specifications. Temperature was found to be a major impacting agent: high temperatures seem to reduce PM2.5 concentrations, while lower temperatures shows signs of rising them. This may appear quite ambiguous, since generally high temperatures are likely to increase some types of air pollution by chemical reaction. We could guess that in colder temperatures, given PM2.5's nature of heavy pollutant, it remains trapped near the ground, thus concentrating for longer periods. This could be an interesting starting point for future research, through which it could be further investigated the complex relationship of PM2.5 with atmospheric factors like wind and humidity.
+
+Based on the data to us available, *Area C* resulted having a significant delayed impact, leading us to be able to claim that it was effective relative to its target of reducing air pollution, at least for what concerns PM2.5.
